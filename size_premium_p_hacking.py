@@ -180,6 +180,7 @@ def compute_ls(panel, n_port, weighting, period, pool):
 
 
 def main():
+    os.makedirs("output", exist_ok=True)
     print(">>> 1/3 拉取数据并构建月度面板（滞后一期 + 剔次新）...")
     basic, mcap, mpx = fetch_data()
     panel = build_panel(basic, mcap, mpx)
@@ -242,7 +243,7 @@ def main():
     ax.set_xticks([])
     mpl_style.hide_spines(ax)
     fig1.tight_layout()
-    fig1.savefig("fig1_spec_landscape.png", dpi=200, bbox_inches="tight")
+    fig1.savefig("output/fig1_spec_landscape.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig1_spec_landscape.png")
 
     # 图2：4 个维度的边际敏感性（箱线图）
@@ -267,7 +268,7 @@ def main():
         mpl_style.hide_spines(ax)
     fig2.suptitle("哪个因素影响最大？", fontsize=14, fontweight="bold")
     fig2.tight_layout(rect=[0, 0, 1, 0.95])
-    fig2.savefig("fig2_driver_sensitivity.png", dpi=200, bbox_inches="tight")
+    fig2.savefig("output/fig2_driver_sensitivity.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig2_driver_sensitivity.png")
 
     # 图3：最激进 vs 最保守规格的累计净值
@@ -290,7 +291,7 @@ def main():
     ax.set_xticklabels([str(t)[:4] for t in ticks], rotation=45)
     mpl_style.hide_spines(ax)
     fig3.tight_layout()
-    fig3.savefig("fig3_best_vs_robust.png", dpi=200, bbox_inches="tight")
+    fig3.savefig("output/fig3_best_vs_robust.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig3_best_vs_robust.png")
 
     print("\n完成。三张图与本文对应，可插入公众号文章。")

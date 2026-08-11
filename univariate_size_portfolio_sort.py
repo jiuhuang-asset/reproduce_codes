@@ -140,6 +140,7 @@ def newey_west_t(values, mean, lag=3):
 
 
 def main():
+    os.makedirs("output", exist_ok=True)
     print(">>> 1/4 拉取数据（jh_quant 月度表）...")
     month_end, mcap, mpx, basic = fetch_data()
     print(f"    月末网格: {len(month_end)} 个月, 市值表: {len(mcap)} 行, 行情: {len(mpx)} 行")
@@ -223,7 +224,7 @@ def main():
     ax.set_title("全 A 股按市值十分位的平均月收益（2015–2024）", fontsize=14, fontweight="bold")
     mpl_style.hide_spines(ax)
     fig1.tight_layout()
-    fig1.savefig("fig1_decile_returns.png", dpi=200, bbox_inches="tight")
+    fig1.savefig("output/fig1_decile_returns.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig1_decile_returns.png")
 
     # 图2：累计净值（复利）
@@ -243,7 +244,7 @@ def main():
     ax.set_xticklabels([str(t)[:4] for t in ticks], rotation=45)
     mpl_style.hide_spines(ax)
     fig2.tight_layout()
-    fig2.savefig("fig2_cumulative.png", dpi=200, bbox_inches="tight")
+    fig2.savefig("output/fig2_cumulative.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig2_cumulative.png")
 
     # 图3：每组总市值占全市场比例（说明市值加权 vs 等权为什么差这么多）
@@ -260,7 +261,7 @@ def main():
     ax.set_title("每个十分位组合的总市值占比（2015–2024）", fontsize=14, fontweight="bold")
     mpl_style.hide_spines(ax)
     fig3.tight_layout()
-    fig3.savefig("fig3_cap_share.png", dpi=200, bbox_inches="tight")
+    fig3.savefig("output/fig3_cap_share.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig3_cap_share.png")
 
     print("\n完成。三张图与本文对应，可插入公众号文章。")

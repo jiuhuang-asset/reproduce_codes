@@ -127,6 +127,7 @@ def assign_quintile(s):
 
 
 def main():
+    os.makedirs("output", exist_ok=True)
     print(">>> 1/3 拉取数据（jh_quant）...")
     basic, mb, mpx = fetch_data()
     print(f"    月度基本面: {len(mb)} 行, 行情: {len(mpx)} 行")
@@ -204,7 +205,7 @@ def main():
     fig1.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
     mpl_style.hide_spines(ax)
     fig1.tight_layout()
-    fig1.savefig("fig1_bm_matrix.png", dpi=200, bbox_inches="tight")
+    fig1.savefig("output/fig1_bm_matrix.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig1_bm_matrix.png")
 
     # 图2：价值多空(VMG) vs 市值多空(SMB) 累计净值
@@ -225,7 +226,7 @@ def main():
     ax.set_xticklabels([str(t)[:4] for t in ticks], rotation=45)
     mpl_style.hide_spines(ax)
     fig2.tight_layout()
-    fig2.savefig("fig2_vmg_cumulative.png", dpi=200, bbox_inches="tight")
+    fig2.savefig("output/fig2_vmg_cumulative.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig2_vmg_cumulative.png")
 
     # 图3：5x5 总市值占比热力图（说明市值主导）
@@ -244,7 +245,7 @@ def main():
     fig3.colorbar(im3, ax=ax, fraction=0.046, pad=0.04)
     mpl_style.hide_spines(ax)
     fig3.tight_layout()
-    fig3.savefig("fig3_cap_share_matrix.png", dpi=200, bbox_inches="tight")
+    fig3.savefig("output/fig3_cap_share_matrix.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig3_cap_share_matrix.png")
 
     print("\n完成。三张图与本文对应，可插入公众号文章。")

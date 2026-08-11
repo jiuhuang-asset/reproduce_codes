@@ -68,10 +68,10 @@ def fetch_data():
                       symbol="sh000300", start="2015-01-01", end="2024-12-31").to_df()
     idx = idx[["date", "close"]]
 
-    # 3) SHIBOR 隔夜利率（无风险利率）
-    shibor = jh.get_data(DataTypes.AK_MACRO_CHINA_SHIBOR_ALL,
+    # 3) SHIBOR 隔夜利率（无风险利率，TS_SHIBOR；akshare SHIBOR 已停更）
+    shibor = jh.get_data(DataTypes.TS_SHIBOR,
                          start="2015-01-01", end="2024-12-31").to_df()
-    shibor = shibor[["date", "on_rate"]]
+    shibor = shibor[["date", "on"]]
 
     # 4) 股票基本信息（行业分类）
     basic = jh.get_data(DataTypes.TS_STOCK_BASIC).to_df()
@@ -96,9 +96,9 @@ def build_panel(monthly, idx, shibor):
     mkt = idx.sort_values("date").groupby("ym")["close"].last().astype(float)
     mkt_ret = mkt.pct_change().rename("mkt_ret")
 
-    # 无风险利率：SHIBOR 隔夜 -> 每月最后一个交易日 on_rate -> 月化（/100/12）
+    # 无风险利率：SHIBOR 隔夜 -> 每月最后一个交易日 on -> 月化（/100/12）
     shibor["ym"] = pd.to_datetime(shibor["date"]).dt.to_period("M")
-    rf = shibor.sort_values("date").groupby("ym")["on_rate"].last().astype(float) / 100 / 12
+    rf = shibor.sort_values("date").groupby("ym")["on"].last().astype(float) / 100 / 12
     rf = rf.rename("rf")
 
     # 对齐：个股收益按 ym 合并市场收益与无风险利率
@@ -122,6 +122,7 @@ def estimate_beta(g):
 
 
 def main():
+    os.makedirs("output", exist_ok=True)
     print(">>> 1/4 拉取数据（jh_quant）...")
     monthly, idx, shibor, basic = fetch_data()
     print(f"    行情: {len(monthly)} 行, 指数: {len(idx)} 行, SHIBOR: {len(shibor)} 行")
@@ -168,7 +169,7 @@ def main():
     ax.legend(fontsize=10)
     mpl_style.hide_spines(ax)
     fig1.tight_layout()
-    fig1.savefig("fig1_beta_distribution.png", dpi=200, bbox_inches="tight")
+    fig1.savefig("output/fig1_beta_distribution.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig1_beta_distribution.png")
 
     # 图2：行业平均 Beta（前 12 + 后 8，按中位数排序）
@@ -187,7 +188,7 @@ def main():
     ax.set_title("各行业 Beta 中位数（前 12 + 后 8）", fontsize=14, fontweight="bold")
     mpl_style.hide_spines(ax)
     fig2.tight_layout()
-    fig2.savefig("fig2_beta_by_industry.png", dpi=200, bbox_inches="tight")
+    fig2.savefig("output/fig2_beta_by_industry.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig2_beta_by_industry.png")
 
     # 图3：Beta 与平均月收益（散点 + 分桶均值线）
@@ -212,7 +213,7 @@ def main():
     ax.set_xlim(-0.5, 3.0)
     mpl_style.hide_spines(ax)
     fig3.tight_layout()
-    fig3.savefig("fig3_beta_vs_return.png", dpi=200, bbox_inches="tight")
+    fig3.savefig("output/fig3_beta_vs_return.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig3_beta_vs_return.png")
 
     print("\n完成。三张图与本文对应，可插入公众号文章。")

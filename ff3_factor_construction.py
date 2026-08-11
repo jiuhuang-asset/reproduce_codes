@@ -88,13 +88,13 @@ def fetch_data():
     mpx = mpx.sort_values(["ts_code", "trade_date"])
     mpx["ret"] = mpx.groupby("ts_code")["close"].pct_change()
 
-    # 无风险利率：SHIBOR 1M（月末值，月化）
-    shibor = jh.get_data(DataTypes.AK_MACRO_CHINA_SHIBOR_ALL,
+    # 无风险利率：TS_SHIBOR 1M（月末值，月化；akshare SHIBOR 已停更）
+    shibor = jh.get_data(DataTypes.TS_SHIBOR,
                          start="2015-01-01", end="2024-12-31").to_df()
-    shibor = shibor[["date", "m1_rate"]]
+    shibor = shibor[["date", "f_1m"]]
     shibor["date"] = pd.to_datetime(shibor["date"])
     shibor["ym"] = shibor["date"].dt.to_period("M")
-    rf = shibor.sort_values("date").groupby("ym")["m1_rate"].last().astype(float) / 100 / 12
+    rf = shibor.sort_values("date").groupby("ym")["f_1m"].last().astype(float) / 100 / 12
     rf = rf.rename("rf")
 
     return basic, mb, mpx, rf
@@ -168,6 +168,7 @@ def newey_west_t(values, mean, lag=3):
 
 
 def main():
+    os.makedirs("output", exist_ok=True)
     print(">>> 1/4 拉取数据（jh_quant 月度表）...")
     basic, mb, mpx, rf = fetch_data()
     print(f"    月度基本面: {len(mb)} 行, 行情: {len(mpx)} 行, SHIBOR: {len(rf)} 期")
@@ -241,7 +242,7 @@ def main():
     ax.set_xticklabels([str(y)[:4] for y in ym_index[::12]], rotation=45)
     mpl_style.hide_spines(ax)
     fig1.tight_layout()
-    fig1.savefig("fig1_ff3_cumulative.png", dpi=200, bbox_inches="tight")
+    fig1.savefig("output/fig1_ff3_cumulative.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig1_ff3_cumulative.png")
 
     # 图2：2x3 组合平均月收益热力图（SMB/HML 的来源）
@@ -263,7 +264,7 @@ def main():
     fig2.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
     mpl_style.hide_spines(ax)
     fig2.tight_layout()
-    fig2.savefig("fig2_ff3_portfolios.png", dpi=200, bbox_inches="tight")
+    fig2.savefig("output/fig2_ff3_portfolios.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig2_ff3_portfolios.png")
 
     print("\n完成。两张图与本文对应，可插入公众号文章。")

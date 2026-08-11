@@ -151,6 +151,7 @@ def rolling_beta(df, window=60):
 
 
 def main():
+    os.makedirs("output", exist_ok=True)
     print(">>> 1/4 拉取数据（jh_quant）...")
     stock_prices, market, shibor = fetch_data()
     print(f"    个股行数: {len(stock_prices)}, 指数行数: {len(market)}, SHIBOR 行数: {len(shibor)}")
@@ -209,7 +210,7 @@ def main():
         mpl_style.hide_spines(ax)
     fig1.suptitle("三只股票 vs 沪深300：日收益散点与市场模型回归线", fontsize=14, fontweight="bold")
     fig1.tight_layout()
-    fig1.savefig("fig1_scatter_regression.png", dpi=200, bbox_inches="tight")
+    fig1.savefig("output/fig1_scatter_regression.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig1_scatter_regression.png")
 
     fig2, ax = plt.subplots(figsize=(8, 5))
@@ -227,7 +228,7 @@ def main():
     ax.legend(fontsize=10)
     mpl_style.hide_spines(ax)
     fig2.tight_layout()
-    fig2.savefig("fig2_beta_compare.png", dpi=200, bbox_inches="tight")
+    fig2.savefig("output/fig2_beta_compare.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig2_beta_compare.png")
 
     fig3, ax = plt.subplots(figsize=(11, 5))
@@ -241,7 +242,7 @@ def main():
     ax.legend(fontsize=10, ncol=3)
     mpl_style.hide_spines(ax)
     fig3.tight_layout()
-    fig3.savefig("fig3_rolling_beta.png", dpi=200, bbox_inches="tight")
+    fig3.savefig("output/fig3_rolling_beta.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig3_rolling_beta.png")
 
     print("\n完成。三张图与本文对应，可插入公众号文章。")
