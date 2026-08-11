@@ -192,27 +192,29 @@ def main():
         rows.append({
             "组合数": n_port, "加权": "等权" if w == "ew" else "市值加权",
             "样本期": f"{period[0]}-{period[1]}", "股票池": pool,
-            "LS月收益%": ls.mean() * 100,
+            "规模溢价%": ls.mean() * 100,
             "月数": len(ls),
         })
     specs = pd.DataFrame(rows)
 
-    print(f"\n全部 {len(specs)} 种规格的 LS 平均月收益：")
+    print(f"\n全部 {len(specs)} 种规格的规模溢价（小盘减大盘，%/月）：")
     print(specs.to_string(index=False))
-    print(f"\n统计：均值 {specs['LS月收益%'].mean():.2f}% | "
-          f"最小 {specs['LS月收益%'].min():.2f}% | "
-          f"最大 {specs['LS月收益%'].max():.2f}% | "
-          f"中位数 {specs['LS月收益%'].median():.2f}%")
-    print(f"正值规格占比: {(specs['LS月收益%'] > 0).mean() * 100:.0f}%")
+    print(f"\n统计：均值 {specs['规模溢价%'].mean():.2f}% | "
+          f"最小 {specs['规模溢价%'].min():.2f}% | "
+          f"最大 {specs['规模溢价%'].max():.2f}% | "
+          f"中位数 {specs['规模溢价%'].median():.2f}%")
+    print(f"正值规格占比: {(specs['规模溢价%'] > 0).mean() * 100:.0f}%")
 
     print("\n最保守（最低）：")
-    print(specs.loc[specs["LS月收益%"].idxmin()].to_string())
+    print(specs.loc[specs["规模溢价%"].idxmin()].to_string())
     print("\n最亮眼（最高）：")
-    print(specs.loc[specs["LS月收益%"].idxmax()].to_string())
+    print(specs.loc[specs["规模溢价%"].idxmax()].to_string())
 
-    # 找出最亮 / 最保守规格，供图 3 画累计净值
-    best = specs.loc[specs["LS月收益%"].idxmax()]
-    worst = specs.loc[specs["LS月收益%"].idxmin()]
+    # 找出最亮 / 最保守规格，供图 3 画累计净值。
+    # 必须限定在 全样本期 2015-2024 内选，否则两条曲线时间窗不同、x 轴错开不可比。
+    full = specs[specs["样本期"] == "2015-2024"]
+    best = full.loc[full["规模溢价%"].idxmax()]
+    worst = full.loc[full["规模溢价%"].idxmin()]
 
     def series_of(spec_row):
         return compute_ls(panel, int(spec_row["组合数"]),
@@ -223,18 +225,18 @@ def main():
     worst_series = series_of(worst).sort_index()
 
     print(">>> 3/3 绘图（mpl_style 统一风格）...")
-    ls_vals = specs.sort_values("LS月收益%")
+    ls_vals = specs.sort_values("规模溢价%")
 
     # 图1：全部规格 LS 收益条形图（按值排序）
     fig1, ax = plt.subplots(figsize=(11, 6))
-    colors = [mpl_style.ACCENT if v <= specs["LS月收益%"].median()
-              else mpl_style.RISE for v in ls_vals["LS月收益%"]]
-    ax.bar(range(len(ls_vals)), ls_vals["LS月收益%"], color=colors, width=0.9)
+    colors = [mpl_style.ACCENT if v <= specs["规模溢价%"].median()
+              else mpl_style.RISE for v in ls_vals["规模溢价%"]]
+    ax.bar(range(len(ls_vals)), ls_vals["规模溢价%"], color=colors, width=0.9)
     ax.axhline(0, color="#7F8C8D", lw=1)
-    ax.axhline(specs["LS月收益%"].median(), color="#7F8C8D", lw=1.2, ls="--",
-               label=f"中位数 {specs['LS月收益%'].median():.2f}%")
-    ax.set_xlabel("规格编号（按 LS 月收益升序）")
-    ax.set_ylabel("LS 平均月收益 (%)")
+    ax.axhline(specs["规模溢价%"].median(), color="#7F8C8D", lw=1.2, ls="--",
+               label=f"中位数 {specs['规模溢价%'].median():.2f}%")
+    ax.set_xlabel("规格编号（按规模溢价升序）")
+    ax.set_ylabel("规模溢价（小盘−大盘，%/月）")
     ax.set_title("54 种设计规格下的规模溢价（A 股 2015-2024）", fontsize=14, fontweight="bold")
     ax.legend(fontsize=10, loc="upper left")
     ax.set_xticks([])
@@ -245,14 +247,14 @@ def main():
 
     # 图2：4 个维度的边际敏感性（箱线图）
     dims = [
-        ("组合数", ["2", "5", "10"], specs),
+        ("组合数", [2, 5, 10], specs),
         ("加权", ["等权", "市值加权"], specs),
         ("样本期", ["2015-2024", "2015-2019", "2020-2024"], specs),
         ("股票池", ["all", "mainboard", "no_finance"], specs),
     ]
     fig2, axes = plt.subplots(1, 4, figsize=(15, 4.5))
     for ax, (dim, cats, _) in zip(axes, dims):
-        data = [specs.loc[specs[dim] == c, "LS月收益%"].values for c in cats]
+        data = [specs.loc[specs[dim] == c, "规模溢价%"].values for c in cats]
         bp = ax.boxplot(data, tick_labels=[str(c) for c in cats], patch_artist=True)
         for patch, c in zip(bp["boxes"], cats):
             patch.set_facecolor(mpl_style.COLOR_CYCLE[0] if c == cats[0]
@@ -261,9 +263,9 @@ def main():
         ax.axhline(0, color="#7F8C8D", lw=0.8, ls=":")
         ax.set_title(dim, fontsize=12)
         ax.set_xlabel("取值")
-        ax.set_ylabel("LS 月收益 (%)" if dim == "组合数" else "")
+        ax.set_ylabel("规模溢价（%/月）" if dim == "组合数" else "")
         mpl_style.hide_spines(ax)
-    fig2.suptitle("哪个研究者选择影响最大？", fontsize=14, fontweight="bold")
+    fig2.suptitle("哪个因素影响最大？", fontsize=14, fontweight="bold")
     fig2.tight_layout(rect=[0, 0, 1, 0.95])
     fig2.savefig("fig2_driver_sensitivity.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig2_driver_sensitivity.png")
@@ -271,9 +273,9 @@ def main():
     # 图3：最亮 vs 最保守规格的累计净值
     fig3, ax = plt.subplots(figsize=(11, 5.5))
     label_best = (f"最亮: {best['组合数']}组/等权/{best['样本期']}/{best['股票池']} "
-                  f"({best['LS月收益%']:.2f}%/月)")
+                  f"({best['规模溢价%']:.2f}%/月)")
     label_worst = (f"最保守: {worst['组合数']}组/市值加权/{worst['样本期']}/{worst['股票池']} "
-                   f"({worst['LS月收益%']:.2f}%/月)")
+                   f"({worst['规模溢价%']:.2f}%/月)")
     ax.plot(best_series.index.astype(str), (best_series + 1).cumprod(),
             lw=1.8, color=mpl_style.RISE, label=label_best)
     ax.plot(worst_series.index.astype(str), (worst_series + 1).cumprod(),
