@@ -196,8 +196,8 @@ def main():
             v = mean_mat[i, j]
             ax.text(j, i, f"{v:.1f}", ha="center", va="center",
                     color="white" if abs(v - np.nanmean(mean_mat)) > 0.8 else "black", fontsize=10)
-    ax.set_xticks(range(5)); ax.set_xticklabels([f"成长\nB{i}" for i in range(1, 6)])
-    ax.set_yticks(range(5)); ax.set_yticklabels([f"S{i}\n小盘" if i == 1 else f"S{i}" for i in range(1, 6)])
+    ax.set_xticks(range(5)); ax.set_xticklabels(["B1\n成长", "B2", "B3", "B4", "B5\n价值"])
+    ax.set_yticks(range(5)); ax.set_yticklabels(["S1\n小盘", "S2", "S3", "S4", "S5\n大盘"])
     ax.set_xlabel("账面市值比（B1 成长 → B5 价值）")
     ax.set_ylabel("市值（S1 小盘 → S5 大盘）")
     ax.set_title("5×5 二维排序的平均月收益（% ，2015-2024）", fontsize=14, fontweight="bold")
@@ -236,8 +236,8 @@ def main():
             v = cap_mat[i, j]
             ax.text(j, i, f"{v:.1f}", ha="center", va="center",
                     color="white" if v > 20 else "black", fontsize=10)
-    ax.set_xticks(range(5)); ax.set_xticklabels([f"成长\nB{i}" for i in range(1, 6)])
-    ax.set_yticks(range(5)); ax.set_yticklabels([f"S{i}\n小盘" if i == 1 else f"S{i}" for i in range(1, 6)])
+    ax.set_xticks(range(5)); ax.set_xticklabels(["B1\n成长", "B2", "B3", "B4", "B5\n价值"])
+    ax.set_yticks(range(5)); ax.set_yticklabels(["S1\n小盘", "S2", "S3", "S4", "S5\n大盘"])
     ax.set_xlabel("账面市值比（B1 成长 → B5 价值）")
     ax.set_ylabel("市值（S1 小盘 → S5 大盘）")
     ax.set_title("5×5 组合占总市值比例（%）", fontsize=14, fontweight="bold")
