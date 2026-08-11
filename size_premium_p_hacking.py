@@ -41,7 +41,7 @@
 并生成 3 张图：
   - fig1_spec_landscape.png   全部规格 LS 收益条形图（按值排序）
   - fig2_driver_sensitivity.png 按 4 个维度分组的箱线图
-  - fig3_best_vs_robust.png   最亮 / 最保守规格的累计净值对比
+  - fig3_best_vs_robust.png   最激进 / 最保守规格的累计净值对比
 """
 
 import os
@@ -207,10 +207,10 @@ def main():
 
     print("\n最保守（最低）：")
     print(specs.loc[specs["规模溢价%"].idxmin()].to_string())
-    print("\n最亮眼（最高）：")
+    print("\n最激进（最高）：")
     print(specs.loc[specs["规模溢价%"].idxmax()].to_string())
 
-    # 找出最亮 / 最保守规格，供图 3 画累计净值。
+    # 找出最激进 / 最保守规格，供图 3 画累计净值。
     # 必须限定在 全样本期 2015-2024 内选，否则两条曲线时间窗不同、x 轴错开不可比。
     full = specs[specs["样本期"] == "2015-2024"]
     best = full.loc[full["规模溢价%"].idxmax()]
@@ -270,9 +270,9 @@ def main():
     fig2.savefig("fig2_driver_sensitivity.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig2_driver_sensitivity.png")
 
-    # 图3：最亮 vs 最保守规格的累计净值
+    # 图3：最激进 vs 最保守规格的累计净值
     fig3, ax = plt.subplots(figsize=(11, 5.5))
-    label_best = (f"最亮: {best['组合数']}组/等权/{best['样本期']}/{best['股票池']} "
+    label_best = (f"最激进: {best['组合数']}组/等权/{best['样本期']}/{best['股票池']} "
                   f"({best['规模溢价%']:.2f}%/月)")
     label_worst = (f"最保守: {worst['组合数']}组/市值加权/{worst['样本期']}/{worst['股票池']} "
                    f"({worst['规模溢价%']:.2f}%/月)")
