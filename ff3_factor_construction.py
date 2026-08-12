@@ -88,13 +88,14 @@ def fetch_data():
     mpx = mpx.sort_values(["ts_code", "trade_date"])
     mpx["ret"] = mpx.groupby("ts_code")["close"].pct_change()
 
-    # 无风险利率：TS_SHIBOR 1M（月末值，月化；akshare SHIBOR 已停更）
+    # 无风险利率：TS_SHIBOR 1M（月末值，月化；bypass_cache 绕开服务端 DDL 列名不一致）
     shibor = jh.get_data(DataTypes.TS_SHIBOR,
-                         start="2015-01-01", end="2024-12-31").to_df()
-    shibor = shibor[["date", "f_1m"]]
+                         start="2015-01-01", end="2024-12-31",
+                         bypass_cache=True).to_df()
+    shibor = shibor[["date", "1m"]]
     shibor["date"] = pd.to_datetime(shibor["date"])
     shibor["ym"] = shibor["date"].dt.to_period("M")
-    rf = shibor.sort_values("date").groupby("ym")["f_1m"].last().astype(float) / 100 / 12
+    rf = shibor.sort_values("date").groupby("ym")["1m"].last().astype(float) / 100 / 12
     rf = rf.rename("rf")
 
     return basic, mb, mpx, rf

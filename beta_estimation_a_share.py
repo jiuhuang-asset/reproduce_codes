@@ -43,7 +43,7 @@ import mpl_style  # noqa: E402
 # 数据期间：最近 5 个完整日历年（约 1200 个交易日）
 START, END = "2020-01-01", "2024-12-31"
 
-# 市场基准：沪深300（akshare 源用 sh000300）
+# 市场基准：沪深300（TS 源 ts_code 为 000300.SH）
 
 # 三只代表性股票：代码 -> 简称
 STOCKS = {
@@ -68,22 +68,24 @@ def fetch_data():
     ).to_df()
     stock_prices = stock_prices[["ts_code", "trade_date", "close"]]
 
-    # 2) 沪深300 指数日线（akshare 源，沪深300 的 symbol 代码是 sh000300）
+    # 2) 沪深300 指数日线（TS 源，沪深300 的 ts_code 是 000300.SH）
     market = jh.get_data(
-        DataTypes.AK_STOCK_ZH_INDEX_DAILY_EM,
-        symbol="sh000300",
+        DataTypes.TS_INDEX_DAILY,
+        ts_code="000300.SH",
         start=START,
         end=END,
     ).to_df()
-    market = market[["date", "close"]].rename(
-        columns={"date": "trade_date", "close": "mkt_close"}
+    market = market[["trade_date", "close"]].rename(
+        columns={"close": "mkt_close"}
     )
 
-    # 3) SHIBOR 隔夜利率（无风险利率）
+    # 3) SHIBOR 隔夜利率（无风险利率，TS_SHIBOR 用 on 列，日化 /360）
+    #    数据量小，bypass_cache 直接拉取：TS_SHIBOR 服务端 DDL 列名尚未同步为 1m/1w
     shibor = jh.get_data(
-        DataTypes.AK_MACRO_CHINA_SHIBOR_ALL, start=START, end=END
+        DataTypes.TS_SHIBOR, start=START, end=END, bypass_cache=True
     ).to_df()
-    shibor = shibor[["date", "on_rate"]].rename(columns={"on_rate": "rf_pct"})
+    shibor = shibor[["date", "on"]].rename(columns={"on": "rf_pct"})
+    shibor["rf_pct"] = pd.to_numeric(shibor["rf_pct"], errors="coerce")  # 远程返回字符串，转数值
 
     return stock_prices, market, shibor
 

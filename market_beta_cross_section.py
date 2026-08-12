@@ -17,8 +17,8 @@
 
 关键设计
 --------
-- 月度频率：样本 2015-05 ~ 2024-12（SHIBOR 自 2015-05 起，与系列第三篇同频）
-- 市场组合：沪深300 指数；无风险利率：SHIBOR 隔夜（月末值，月度化）
+- 月度频率：样本 2015-05 ~ 2024-12
+- 市场组合：沪深300 指数（TS 源）；无风险利率：SHIBOR 1个月期（月末值，月度化）
 - 最少观测：单只股票 < 60 个月样本则剔除（Beta 估计不可靠）
 - 极端收益：|月度收益| > 100% 剔除（数据噪音，避免单点主导回归）
 
@@ -47,7 +47,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mpl_style  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 
-# 样本期（SHIBOR 自 2015-05 起；2014-12 多拉一个月供 pct_change 用）
+# 样本期（2014-12 多拉一个月供 pct_change 用）
 START, END = "2014-12-01", "2024-12-31"
 MIN_OBS = 60          # 单只股票最少样本月数
 MAX_ABS_RET = 1.0     # 月度收益绝对值上限（100%），剔除极端
@@ -63,15 +63,17 @@ def fetch_data():
     monthly = jh.get_data(DataTypes.TS_MONTHLY_QFQ, start=START, end=END).to_df()
     monthly = monthly[["trade_date", "ts_code", "close"]]
 
-    # 2) 沪深300 指数日线（市场组合收益）
-    idx = jh.get_data(DataTypes.AK_STOCK_ZH_INDEX_DAILY_EM,
-                      symbol="sh000300", start="2015-01-01", end="2024-12-31").to_df()
-    idx = idx[["date", "close"]]
+    # 2) 沪深300 指数日线（市场组合收益，TS 源 ts_code=000300.SH）
+    idx = jh.get_data(DataTypes.TS_INDEX_DAILY,
+                      ts_code="000300.SH", start="2015-01-01", end="2024-12-31").to_df()
+    idx = idx[["trade_date", "close"]].rename(columns={"trade_date": "date"})
 
-    # 3) SHIBOR 隔夜利率（无风险利率，TS_SHIBOR；akshare SHIBOR 已停更）
+    # 3) SHIBOR 无风险利率（TS_SHIBOR，月度用 1 个月期列 1m）
+    #    数据量小，bypass_cache 直接拉取：TS_SHIBOR 服务端 DDL 列名尚未同步为 1m/1w
     shibor = jh.get_data(DataTypes.TS_SHIBOR,
-                         start="2015-01-01", end="2024-12-31").to_df()
-    shibor = shibor[["date", "on"]]
+                         start="2015-01-01", end="2024-12-31",
+                         bypass_cache=True).to_df()
+    shibor = shibor[["date", "1m"]]
 
     # 4) 股票基本信息（行业分类）
     basic = jh.get_data(DataTypes.TS_STOCK_BASIC).to_df()
@@ -96,9 +98,9 @@ def build_panel(monthly, idx, shibor):
     mkt = idx.sort_values("date").groupby("ym")["close"].last().astype(float)
     mkt_ret = mkt.pct_change().rename("mkt_ret")
 
-    # 无风险利率：SHIBOR 隔夜 -> 每月最后一个交易日 on -> 月化（/100/12）
+    # 无风险利率：SHIBOR 1个月期 -> 每月最后一个交易日 1m -> 月化（/100/12）
     shibor["ym"] = pd.to_datetime(shibor["date"]).dt.to_period("M")
-    rf = shibor.sort_values("date").groupby("ym")["on"].last().astype(float) / 100 / 12
+    rf = shibor.sort_values("date").groupby("ym")["1m"].last().astype(float) / 100 / 12
     rf = rf.rename("rf")
 
     # 对齐：个股收益按 ym 合并市场收益与无风险利率
