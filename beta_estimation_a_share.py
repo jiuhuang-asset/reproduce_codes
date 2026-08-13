@@ -204,7 +204,8 @@ def part1_single_stock():
         print(f"      [跳过] calculate_exposures 不可用: {e}")
 
     # fig1：散点 + 回归线（三子图纵向排布，手机端单屏阅读更友好）
-    fig1, axes = plt.subplots(3, 1, figsize=(7.5, 14))
+    # 纵向布局：x 轴语义一致 → 共用 x 标签（只放最底一列）；每只股票各自收益轴 → y 标签各子图独立
+    fig1, axes = plt.subplots(3, 1, figsize=(7.5, 14), sharex=True)
     for ax, (code, name) in zip(axes, STOCKS.items()):
         sub = df[df["symbol"] == code].dropna()
         ax.scatter(sub["mkt_excess"], sub["stock_excess"], s=8, alpha=0.45,
@@ -216,11 +217,11 @@ def part1_single_stock():
         ax.axhline(0, color="#B2BABB", lw=0.8, ls="--")
         ax.axvline(0, color="#B2BABB", lw=0.8, ls="--")
         ax.set_title(f"{name}\nβ={beta:.2f}  R²={r2:.2f}", fontsize=13)
-        ax.set_xlabel("沪深300 日收益 (%)")
         ax.set_ylabel("个股日收益 (%)")
         ax.set_ylim(-20, 20)  # 三张子图统一 y 轴范围，斜率（Beta）才能直观对比
         ax.legend(loc="upper left", fontsize=10)
         mpl_style.hide_spines(ax)
+    axes[-1].set_xlabel("沪深300 日收益 (%)")  # 三个子图共用的 x 标签
     fig1.suptitle("三只股票 vs 沪深300：日收益散点与市场模型回归线", fontsize=14, fontweight="bold")
     fig1.tight_layout()
     fig1.savefig("output/fig1_scatter_regression.png", dpi=200, bbox_inches="tight")

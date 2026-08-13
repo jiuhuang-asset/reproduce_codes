@@ -220,13 +220,13 @@ def fig1_constrained_weights(mu, cov, rf):
 
     y = np.arange(len(codes_s))
     # 手机端优先：两张权重图纵向堆叠（无约束 vs 约束后）
+    # 纵向布局：x 轴语义一致（权重%）→ 共用 x 标签（只放底部）；y 轴为股票名 → 各子图独立刻度标签
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 14))
 
     colors = [mpl_style.FALL if w < 0 else mpl_style.RISE for w in w_uncon_s]
     ax1.barh(y, w_uncon_s, color=colors)
     ax1.axvline(0, color="#666666", lw=0.8)
     ax1.set_title("无约束最大夏普组合")
-    ax1.set_xlabel("权重（%）")
     ax1.set_yticks(y)
     ax1.set_yticklabels(names_s, fontsize=9)
     ax1.set_xlim(-100, max(w_uncon_s.max(), 60) * 1.1)
@@ -236,7 +236,7 @@ def fig1_constrained_weights(mu, cov, rf):
     ax2.axvline(MAX_WEIGHT * 100, color=mpl_style.ACCENT_2, ls="--", lw=1.2,
                 label=f"权重上限 {MAX_WEIGHT * 100:.0f}%")
     ax2.set_title("禁卖空 + 权重上限后")
-    ax2.set_xlabel("权重（%）")
+    ax2.set_xlabel("权重（%）")  # 两张子图共用的 x 标签
     ax2.set_xlim(-5, 45)
     ax2.legend(loc="lower right")
 

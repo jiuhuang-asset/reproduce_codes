@@ -378,6 +378,7 @@ def part2_p_hacking(panel):
         ("股票池", ["all", "mainboard", "no_finance"]),
     ]
     # 手机端优先：4 个维度纵向堆叠（子图共享 y 轴，统一规模溢价刻度）
+    # 纵向布局：x 标签共用（只放最底一列），y 标签各子图独立
     fig5, axes = plt.subplots(4, 1, figsize=(8, 17), sharey=True)
     for ax, (dim, cats) in zip(axes, dims):
         data = [specs.loc[specs[dim] == c, "规模溢价%"].values for c in cats]
@@ -388,9 +389,9 @@ def part2_p_hacking(panel):
             patch.set_alpha(0.6)
         ax.axhline(0, color="#7F8C8D", lw=0.8, ls=":")
         ax.set_title(dim, fontsize=12)
-        ax.set_xlabel("取值")
-        ax.set_ylabel("规模溢价（%/月）" if dim == "组合数" else "")
+        ax.set_ylabel("规模溢价（%/月）")
         mpl_style.hide_spines(ax)
+    axes[-1].set_xlabel("取值")  # 四个子图共用的 x 标签
     fig5.suptitle("哪个因素影响最大？", fontsize=14, fontweight="bold")
     fig5.tight_layout(rect=[0, 0, 1, 0.95])
     fig5.savefig("output/fig5_driver_sensitivity.png", dpi=200, bbox_inches="tight")
