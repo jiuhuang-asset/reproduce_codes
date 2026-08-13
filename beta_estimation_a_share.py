@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-Beta 估计：用 jh_quant 拉取 A 股数据，验证 CAPM 市场模型
-==========================================================
+Beta 估计（A股）：从三只股票到全市场截面
+==========================================
 
-对应公众号文章《资产定价入门 · Beta 是什么，用 A 股数据算给你看》（量海泛舟 · 系列第一篇）
+对应公众号文章《资产定价入门 · Beta 是什么，用 A 股数据算给你看》（量海泛舟）
 方法论参考：https://www.tidy-finance.org/chapters/beta-estimation.html
 
-做什么
-------
-用市场模型 R_i - R_f = alpha + beta * (R_m - R_f) + e，对三只代表性 A 股做 OLS 回归：
-  - 招商银行 600036.SH（银行，预期低 beta / 防御型）
-  - 贵州茅台 600519.SH（消费蓝筹，预期 beta 接近 1）
-  - 宁德时代 300750.SZ（新能源成长，预期高 beta / 进攻型）
-市场基准 = 沪深300（000300.SH）。无风险利率取 SHIBOR 隔夜利率（日频）。
+内容分两部分：
+  Part 1 — 三只代表性 A 股（日频）：招商银行 / 贵州茅台 / 宁德时代
+          用市场模型 R_i - R_f = alpha + beta*(R_m - R_f) + e 做 OLS，
+          输出 beta / alpha / R^2，并画散点回归、beta 对比、滚动 beta 三张图。
+  Part 2 — 全 A 股（月频）：对每一只股票跑同样的市场模型回归，
+          得到全市场 Beta 分布、行业 Beta 排序、Beta 与平均收益的关系三张图。
+
+市场基准 = 沪深300（000300.SH）。
+无风险利率：日频用 SHIBOR 隔夜（on），月频用 SHIBOR 1 个月期（1m）。
 
 运行方式
 --------
@@ -24,26 +26,35 @@ Beta 估计：用 jh_quant 拉取 A 股数据，验证 CAPM 市场模型
 
 输出
 ----
-控制台打印三只股票的 beta / alpha / R^2，并生成 3 张图：
-  - fig1_scatter_regression.png   日收益散点 + 回归线（3 子图）
-  - fig2_beta_compare.png         beta 对比柱状图
-  - fig3_rolling_beta.png         60 交易日滚动 beta 时序
+控制台打印三只股票的 beta / alpha / R^2，以及全市场 Beta 描述统计与行业 Beta 表，
+并生成 6 张图到 output/ 子目录：
+  Part 1:
+    - fig1_scatter_regression.png   三只股票日收益散点 + 回归线
+    - fig2_beta_compare.png         三只股票 beta 对比柱状图
+    - fig3_rolling_beta.png         60 交易日滚动 beta 时序
+  Part 2:
+    - fig1_beta_distribution.png    全市场 Beta 分布直方图
+    - fig2_beta_by_industry.png     行业 Beta 中位数（前 12 + 后 8）
+    - fig3_beta_vs_return.png       Beta 与平均月收益（散点 + 分桶均值）
 """
 
 import os
 import sys
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 # 统一图表风格（house style，保证公众号文章图表一致）
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mpl_style  # noqa: E402
+import matplotlib.pyplot as plt  # noqa: E402
+
+
+# ============================================================
+# Part 1：三只代表性股票（日频）
+# ============================================================
 
 # 数据期间：最近 5 个完整日历年（约 1200 个交易日）
-START, END = "2020-01-01", "2024-12-31"
-
-# 市场基准：沪深300（TS 源 ts_code 为 000300.SH）
+STOCK_START, STOCK_END = "2020-01-01", "2024-12-31"
 
 # 三只代表性股票：代码 -> 简称
 STOCKS = {
@@ -53,7 +64,7 @@ STOCKS = {
 }
 
 
-def fetch_data():
+def fetch_stock_data():
     """用 jh_quant 拉取：个股前复权日线 + 沪深300 + SHIBOR 无风险利率。"""
     from jh_quant.data import JHData, DataTypes
 
@@ -63,8 +74,8 @@ def fetch_data():
     stock_prices = jh.get_data(
         DataTypes.TS_DAILY_QFQ,
         ts_code=",".join(STOCKS.keys()),
-        start=START,
-        end=END,
+        start=STOCK_START,
+        end=STOCK_END,
     ).to_df()
     stock_prices = stock_prices[["ts_code", "trade_date", "close"]]
 
@@ -72,8 +83,8 @@ def fetch_data():
     market = jh.get_data(
         DataTypes.TS_INDEX_DAILY,
         ts_code="000300.SH",
-        start=START,
-        end=END,
+        start=STOCK_START,
+        end=STOCK_END,
     ).to_df()
     market = market[["trade_date", "close"]].rename(
         columns={"close": "mkt_close"}
@@ -82,7 +93,7 @@ def fetch_data():
     # 3) SHIBOR 隔夜利率（无风险利率，TS_SHIBOR 用 on 列，日化 /360）
     #    数据量小，bypass_cache 直接拉取：TS_SHIBOR 服务端 DDL 列名尚未同步为 1m/1w
     shibor = jh.get_data(
-        DataTypes.TS_SHIBOR, start=START, end=END, bypass_cache=True
+        DataTypes.TS_SHIBOR, start=STOCK_START, end=STOCK_END, bypass_cache=True
     ).to_df()
     shibor = shibor[["date", "on"]].rename(columns={"on": "rf_pct"})
     shibor["rf_pct"] = pd.to_numeric(shibor["rf_pct"], errors="coerce")  # 远程返回字符串，转数值
@@ -90,7 +101,7 @@ def fetch_data():
     return stock_prices, market, shibor
 
 
-def prepare_returns(stock_prices, market, shibor):
+def prepare_stock_returns(stock_prices, market, shibor):
     """算收益 + 超额收益（减无风险利率），按交易日对齐。"""
     # 个股日收益：前复权 close 的百分比变化
     stock_prices = stock_prices.sort_values(["ts_code", "trade_date"])
@@ -152,17 +163,16 @@ def rolling_beta(df, window=60):
     return out
 
 
-def main():
-    os.makedirs("output", exist_ok=True)
-    print(">>> 1/4 拉取数据（jh_quant）...")
-    stock_prices, market, shibor = fetch_data()
+def part1_single_stock():
+    """三只代表性股票的 Beta 估计 + 3 张图。"""
+    print(">>> [Part 1] 拉取三只股票数据（日频）...")
+    stock_prices, market, shibor = fetch_stock_data()
     print(f"    个股行数: {len(stock_prices)}, 指数行数: {len(market)}, SHIBOR 行数: {len(shibor)}")
 
-    print(">>> 2/4 计算收益并合并...")
-    df = prepare_returns(stock_prices, market, shibor)
+    df = prepare_stock_returns(stock_prices, market, shibor)
     print(f"    合并后行数: {len(df)}（三只股票 × {df['trade_date'].nunique()} 个交易日）")
 
-    print(">>> 3/4 全样本 OLS 回归（手写最小二乘）...")
+    print("    全样本 OLS 回归（手写最小二乘）...")
     results = []
     for code, name in STOCKS.items():
         sub = df[df["symbol"] == code].dropna()
@@ -175,7 +185,7 @@ def main():
     print(res.round(3).to_string())
 
     # 对照：jh_quant 内置的 calculate_exposures（同一份数据，应得到几乎一样的 beta）
-    print(">>> 3.5 对照：jh_quant.factors.calculate_exposures ...")
+    print("    对照：jh_quant.factors.calculate_exposures ...")
     try:
         from jh_quant.factors import calculate_exposures
         stock_ret = df[["symbol", "trade_date", "stock_excess"]].rename(
@@ -186,14 +196,14 @@ def main():
             .set_index("trade_date")[["mkt_excess"]].rename(columns={"mkt_excess": "mkt"})
         )
         exposure = calculate_exposures(stock_ret, factor_ret, period="D", lookback=252)
-        print("    jh_quant 内置 beta（全样本）:")
+        print("      jh_quant 内置 beta（全样本）:")
         for code, name in STOCKS.items():
             b = exposure[exposure["symbol"] == code]["mkt"].mean()
-            print(f"      {name}: {b:.3f}")
+            print(f"        {name}: {b:.3f}")
     except Exception as e:  # 内置接口或环境缺失时不影响主流程
-        print(f"    [跳过] calculate_exposures 不可用: {e}")
+        print(f"      [跳过] calculate_exposures 不可用: {e}")
 
-    print(">>> 4/4 绘图（mpl_style 统一风格）...")
+    # fig1：散点 + 回归线
     fig1, axes = plt.subplots(1, 3, figsize=(15, 4.5))
     for ax, (code, name) in zip(axes, STOCKS.items()):
         sub = df[df["symbol"] == code].dropna()
@@ -215,6 +225,7 @@ def main():
     fig1.savefig("output/fig1_scatter_regression.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig1_scatter_regression.png")
 
+    # fig2：beta 对比柱状图
     fig2, ax = plt.subplots(figsize=(8, 5))
     names = [r["name"] for r in results]
     betas = [r["beta"] for r in results]
@@ -233,6 +244,7 @@ def main():
     fig2.savefig("output/fig2_beta_compare.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig2_beta_compare.png")
 
+    # fig3：滚动 beta 时序
     fig3, ax = plt.subplots(figsize=(11, 5))
     for code, name in STOCKS.items():
         sub = df[df["symbol"] == code].dropna().sort_values("trade_date")
@@ -247,7 +259,185 @@ def main():
     fig3.savefig("output/fig3_rolling_beta.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig3_rolling_beta.png")
 
-    print("\n完成。三张图与本文对应，可插入公众号文章。")
+    return df, res
+
+
+# ============================================================
+# Part 2：全市场截面（月频）
+# ============================================================
+
+# 样本期（2014-12 多拉一个月供 pct_change 用）
+MKT_START, MKT_END = "2014-12-01", "2024-12-31"
+MIN_OBS = 60          # 单只股票最少样本月数
+MAX_ABS_RET = 1.0     # 月度收益绝对值上限（100%），剔除极端
+
+
+def fetch_market_data():
+    """用 jh_quant 拉取：全市场月度前复权、沪深300 指数、SHIBOR、行业。"""
+    from jh_quant.data import JHData, DataTypes
+
+    jh = JHData()
+
+    # 1) 全市场月度前复权行情（2014-12 起，供 pct_change 计算 2015-05 之后收益）
+    monthly = jh.get_data(DataTypes.TS_MONTHLY_QFQ, start=MKT_START, end=MKT_END).to_df()
+    monthly = monthly[["trade_date", "ts_code", "close"]]
+
+    # 2) 沪深300 指数日线（市场组合收益，TS 源 ts_code=000300.SH）
+    idx = jh.get_data(DataTypes.TS_INDEX_DAILY,
+                      ts_code="000300.SH", start="2015-01-01", end="2024-12-31").to_df()
+    idx = idx[["trade_date", "close"]].rename(columns={"trade_date": "date"})
+
+    # 3) SHIBOR 无风险利率（TS_SHIBOR，月度用 1 个月期列 1m）
+    #    数据量小，bypass_cache 直接拉取：TS_SHIBOR 服务端 DDL 列名尚未同步为 1m/1w
+    shibor = jh.get_data(DataTypes.TS_SHIBOR,
+                         start="2015-01-01", end="2024-12-31",
+                         bypass_cache=True).to_df()
+    shibor = shibor[["date", "1m"]]
+
+    # 4) 股票基本信息（行业分类）
+    basic = jh.get_data(DataTypes.TS_STOCK_BASIC).to_df()
+    basic = basic[["ts_code", "industry"]]
+
+    return monthly, idx, shibor, basic
+
+
+def build_panel(monthly, idx, shibor):
+    """把个股 / 市场 / 无风险利率按月度对齐成面板，返回超额收益。"""
+    # 个股月度收益
+    px = monthly.copy()
+    px["trade_date"] = pd.to_datetime(px["trade_date"])
+    px["ym"] = px["trade_date"].dt.to_period("M")
+    px = px.sort_values(["ts_code", "trade_date"])
+    px["ret"] = px.groupby("ts_code")["close"].pct_change()
+    px = px.dropna(subset=["ret"])
+    px = px[np.abs(px["ret"]) < MAX_ABS_RET]  # 剔除极端收益
+
+    # 市场月收益：指数日线 -> 每月最后一个交易日 close -> pct_change
+    idx["ym"] = pd.to_datetime(idx["date"]).dt.to_period("M")
+    mkt = idx.sort_values("date").groupby("ym")["close"].last().astype(float)
+    mkt_ret = mkt.pct_change().rename("mkt_ret")
+
+    # 无风险利率：SHIBOR 1个月期 -> 每月最后一个交易日 1m -> 月化（/100/12）
+    shibor["ym"] = pd.to_datetime(shibor["date"]).dt.to_period("M")
+    rf = shibor.sort_values("date").groupby("ym")["1m"].last().astype(float) / 100 / 12
+    rf = rf.rename("rf")
+
+    # 对齐：个股收益按 ym 合并市场收益与无风险利率
+    panel = px.merge(mkt_ret, on="ym", how="left").merge(rf, on="ym", how="left")
+    panel["excess_ret"] = panel["ret"] - panel["rf"]
+    panel["excess_mkt"] = panel["mkt_ret"] - panel["rf"]
+    panel = panel.dropna(subset=["excess_ret", "excess_mkt"])
+    return panel
+
+
+def estimate_beta(g):
+    """对单只股票回归市场模型，返回 beta / alpha / r2 / 样本数。"""
+    y = g["excess_ret"].values
+    x = g["excess_mkt"].values
+    if len(y) < MIN_OBS:
+        return pd.Series({"beta": np.nan, "alpha": np.nan, "r2": np.nan, "n": len(y)})
+    beta, alpha = np.polyfit(x, y, 1)
+    resid = y - (alpha + beta * x)
+    r2 = 1.0 - resid.var() / y.var()
+    return pd.Series({"beta": beta, "alpha": alpha, "r2": r2, "n": len(y)})
+
+
+def part2_cross_section():
+    """全市场 Beta 截面分析 + 3 张图。"""
+    print(">>> [Part 2] 拉取全市场数据（月频）...")
+    monthly, idx, shibor, basic = fetch_market_data()
+    print(f"    行情: {len(monthly)} 行, 指数: {len(idx)} 行, SHIBOR: {len(shibor)} 行")
+
+    panel = build_panel(monthly, idx, shibor)
+    print(f"    面板: {len(panel)} 行, 月度 {panel['ym'].nunique()} 个月, 股票 {panel['ts_code'].nunique()} 只")
+
+    est = panel.groupby("ts_code").apply(estimate_beta, include_groups=False)
+    est = est.dropna(subset=["beta"]).reset_index()
+    print(f"    有效股票（样本 >= {MIN_OBS} 个月）: {len(est)} 只")
+
+    # 描述统计
+    desc = est["beta"].describe(percentiles=[0.05, 0.25, 0.5, 0.75, 0.95])
+    print("\n    Beta 描述统计：")
+    print(desc.round(3).to_string())
+
+    # 行业 Beta（合并行业分类，取行业中位数）
+    est = est.merge(basic, on="ts_code", how="left")
+    est["industry"] = est["industry"].fillna("其他")
+    ind = (est.groupby("industry")["beta"]
+             .agg(["median", "count"])
+             .sort_values("median", ascending=False))
+    print("\n    行业 Beta（按中位数降序）：")
+    print(ind.round(3).to_string())
+
+    beta = est["beta"].dropna()
+
+    # 图1：Beta 分布直方图
+    fig1, ax = plt.subplots(figsize=(10, 5.5))
+    ax.hist(beta, bins=60, color=mpl_style.COLOR_CYCLE[0], alpha=0.85,
+            edgecolor="white", linewidth=0.4)
+    med = beta.median()
+    ax.axvline(med, color=mpl_style.RISE, lw=1.8, ls="--",
+               label=f"中位数 {med:.2f}")
+    ax.axvline(1.0, color="#7F8C8D", lw=1.2, ls=":", label="Beta = 1（与大盘同步）")
+    ax.set_xlim(-1.0, 3.0)
+    ax.set_xlabel("Beta")
+    ax.set_ylabel("股票数量")
+    ax.set_title("全 A 股月度 Beta 分布（2015-05 ~ 2024-12）", fontsize=14, fontweight="bold")
+    ax.legend(fontsize=10)
+    mpl_style.hide_spines(ax)
+    fig1.tight_layout()
+    fig1.savefig("output/fig1_beta_distribution.png", dpi=200, bbox_inches="tight")
+    print("    已保存 fig1_beta_distribution.png")
+
+    # 图2：行业平均 Beta（前 12 + 后 8，按中位数排序）
+    top = ind.head(12)
+    bottom = ind.tail(8)
+    sel = pd.concat([top, bottom]).sort_values("median")
+    fig2, ax = plt.subplots(figsize=(10, 7))
+    colors = [mpl_style.ACCENT if v < 1 else mpl_style.RISE for v in sel["median"]]
+    ax.barh(sel.index, sel["median"], color=colors, height=0.65)
+    for y, v in enumerate(sel["median"]):
+        ax.text(v + 0.01, y, f"{v:.2f}", va="center", fontsize=9)
+    ax.axvline(1.0, color="#7F8C8D", lw=1.2, ls="--")
+    ax.set_xlabel("行业 Beta 中位数")
+    ax.set_ylabel("行业")
+    ax.set_title("各行业 Beta 中位数（前 12 + 后 8）", fontsize=14, fontweight="bold")
+    mpl_style.hide_spines(ax)
+    fig2.tight_layout()
+    fig2.savefig("output/fig2_beta_by_industry.png", dpi=200, bbox_inches="tight")
+    print("    已保存 fig2_beta_by_industry.png")
+
+    # 图3：Beta 与平均月收益（散点 + 分桶均值线）
+    est["mean_ret"] = est["ts_code"].map(panel.groupby("ts_code")["ret"].mean())
+    fig3, ax = plt.subplots(figsize=(10, 5.5))
+    ax.scatter(est["beta"], est["mean_ret"] * 100, s=8, alpha=0.35,
+               color=mpl_style.COLOR_CYCLE[0])
+    # 分桶：每 0.2 一个桶，桶内均值连线
+    bins = np.arange(-0.5, 3.0, 0.2)
+    labels = (bins[:-1] + bins[1:]) / 2
+    bucket = pd.cut(est["beta"], bins=bins, labels=labels)
+    grp = est.groupby(bucket, observed=False)["mean_ret"].mean().dropna()
+    ax.plot(grp.index.astype(float), grp.values * 100,
+            color=mpl_style.RISE, lw=2.2, marker="o", ms=4, label="分桶均值")
+    ax.set_xlabel("Beta")
+    ax.set_ylabel("平均月收益 (%)")
+    ax.set_title("Beta 与平均月收益（2015-05 ~ 2024-12）", fontsize=14, fontweight="bold")
+    ax.legend(fontsize=10)
+    ax.set_xlim(-0.5, 3.0)
+    mpl_style.hide_spines(ax)
+    fig3.tight_layout()
+    fig3.savefig("output/fig3_beta_vs_return.png", dpi=200, bbox_inches="tight")
+    print("    已保存 fig3_beta_vs_return.png")
+
+    return panel, est
+
+
+def main():
+    os.makedirs("output", exist_ok=True)
+    part1_single_stock()
+    print()
+    part2_cross_section()
+    print("\n完成。6 张图与本文对应，可插入公众号文章。")
 
 
 if __name__ == "__main__":
