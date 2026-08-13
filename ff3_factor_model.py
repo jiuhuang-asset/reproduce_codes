@@ -500,8 +500,8 @@ def part3_validate(panel, rf, factors, ym_index):
     print("\n个股 FF3 归因（3 只代表性股票）：")
     print(attr_df.to_string(index=False))
 
-    # 图6：手写 vs 库版 SMB/HML 散点 + 45 度线
-    fig6, axes = plt.subplots(1, 2, figsize=(13, 5.2))
+    # 图6：手写 vs 库版 SMB/HML 散点 + 45 度线（手机端优先：两张纵向堆叠）
+    fig6, axes = plt.subplots(2, 1, figsize=(8, 12))
     for ax, cn, label in zip(axes, ["smb", "hml"], ["SMB", "HML"]):
         x = cmp[f"{cn}_lib"].values * 100
         y = cmp[f"{cn}_hand"].values * 100

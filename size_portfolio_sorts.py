@@ -377,7 +377,8 @@ def part2_p_hacking(panel):
         ("样本期", ["2015-2026", "2015-2019", "2020-2026"]),
         ("股票池", ["all", "mainboard", "no_finance"]),
     ]
-    fig5, axes = plt.subplots(1, 4, figsize=(15, 4.5))
+    # 手机端优先：4 个维度纵向堆叠（子图共享 y 轴，统一规模溢价刻度）
+    fig5, axes = plt.subplots(4, 1, figsize=(8, 17), sharey=True)
     for ax, (dim, cats) in zip(axes, dims):
         data = [specs.loc[specs[dim] == c, "规模溢价%"].values for c in cats]
         bp = ax.boxplot(data, tick_labels=[str(c) for c in cats], patch_artist=True)

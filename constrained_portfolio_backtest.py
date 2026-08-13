@@ -219,7 +219,8 @@ def fig1_constrained_weights(mu, cov, rf):
     w_ms_s = w_ms[order] * 100
 
     y = np.arange(len(codes_s))
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 7), sharey=True)
+    # 手机端优先：两张权重图纵向堆叠（无约束 vs 约束后）
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 14))
 
     colors = [mpl_style.FALL if w < 0 else mpl_style.RISE for w in w_uncon_s]
     ax1.barh(y, w_uncon_s, color=colors)

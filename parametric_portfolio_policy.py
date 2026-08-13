@@ -195,7 +195,8 @@ def fig1_characteristic_returns(rets, momentum, size):
     mom_rank = momentum.rank(axis=1, pct=True)   # 每月横截面分位（0~1）
     size_rank = size.rank(axis=1, pct=True)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 6))
+    # 手机端优先：动量/市值两张分组柱状图纵向堆叠（共享横轴分组）
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 11), sharex=True)
     edges = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
     labels = ["最低", "2", "3", "4", "最高"]
 
