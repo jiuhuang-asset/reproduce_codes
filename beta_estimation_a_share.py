@@ -218,6 +218,7 @@ def part1_single_stock():
         ax.set_title(f"{name}\nβ={beta:.2f}  R²={r2:.2f}", fontsize=12)
         ax.set_xlabel("沪深300 日收益 (%)")
         ax.set_ylabel("个股日收益 (%)")
+        ax.set_ylim(-20, 20)  # 三张子图统一 y 轴范围，斜率（Beta）才能直观对比
         ax.legend(loc="upper left", fontsize=9)
         mpl_style.hide_spines(ax)
     fig1.suptitle("三只股票 vs 沪深300：日收益散点与市场模型回归线", fontsize=14, fontweight="bold")
