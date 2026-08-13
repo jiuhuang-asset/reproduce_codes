@@ -3,12 +3,12 @@
 Fama-MacBeth 回归：检验哪些特征真的被定价（A股月度实证）
 ========================================================
 
-对应公众号文章《因子真的被定价了吗？Fama-MacBeth 回归》（量海泛舟 · 资产定价系列第八篇）
+对应公众号文章《因子真的被定价了吗？Fama-MacBeth 回归》（量海泛舟）
 方法论参考：https://www.tidy-finance.org/chapters/fama-macbeth-regressions.html
 
 做什么
 ------
-前几篇我们把 FF3 因子造出来、验证了（006/007），但还有一个根本问题没回答：
+前几篇文章把 FF3 因子造出来、验证了，但还有一个根本问题没回答：
 这些风险特征（市场 beta、市值、账面市值比）真的"被定价"了吗？收益真的随它们
 系统性变化吗？
 
@@ -17,7 +17,7 @@ Fama-MacBeth (1973) 两步法就是干这个的：
   Step 0 估计每只股票的月度特征（全部滞后一期，避免前视）：
      - beta：滚动 36 个月的 CAPM 市场 beta（窗口截止到 t-1）
      - log_mktcap：对数市值
-     - bm：账面市值比（1/PB，与 006/007 同口径）
+     - bm：账面市值比（1/PB，与前文同口径）
   Step 1 每个月做一次横截面回归：
      R_i,t - R_f,t = a_t + lambda * 特征_i,t + eps_i,t
      得到每个月的"特征风险溢价" lambda_t（每个特征单独回归，FM 1973 原意）
@@ -39,7 +39,7 @@ Fama-MacBeth (1973) 两步法就是干这个的：
 - 特征全部滞后 / 用 t-1 及以前数据：beta 滚动窗口截止 t-1，市值/BM 取 t-1 月末值
 - 特征先在每月横截面内做 1%/99% winsorize，再 Z-Score 标准化，
   这样 lambda 跨特征可比（= 该特征每增加 1 个标准差对应的月收益）
-- 剔次新、市值加权、月度再平衡，与 006/007 完全一致
+- 剔次新、市值加权、月度再平衡，与前文完全一致
 - Newey-West 标准误修正 lambda 的序列自相关
 
 运行方式
@@ -54,6 +54,8 @@ Fama-MacBeth (1973) 两步法就是干这个的：
 并生成 2 张图：
   - fig1_risk_premia.png    单特征风险溢价柱状图（NW 误差棒 + 显著性标注）
   - fig2_rolling_lambda.png 每月横截面 lambda 时序（可见 beta 检验起点更晚）
+最后附一段 FactorSelector 演示：jh_quant.backtest.FactorSelector 把 FM 验证
+（validate_factor(method="fama_macbeth")）嵌进因子选股，用 mean_lambda 当权重。
 """
 
 import os
@@ -66,7 +68,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mpl_style  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 
-from ff3_factor_construction import (  # noqa: E402
+from ff3_factor_model import (  # noqa: E402
     fetch_data, build_panel,
 )
 
@@ -151,6 +153,37 @@ def print_table(df):
     for col in ["λ(%/月)", "普通t", "NW t"]:
         out[col] = out[col].round(2)
     print(out.to_string(index=False))
+
+
+def part_factor_selector():
+    """jh_quant 的 FactorSelector：把 Fama-MacBeth 验证嵌进因子选股。
+
+    FactorSelector 内部先对每个因子跑一遍 FM 回归，用得到的 mean_lambda 作为
+    该因子的权重（显著因子取 mean_lambda，不显著因子降权），再按
+    score = Σ w_j × exposure 给股票打分，取 top_n / bottom_n。这里演示 FF3。
+    """
+    print(">>> [附加] jh_quant.backtest.FactorSelector（FM 验证驱动的因子选股）...")
+    try:
+        from jh_quant.backtest import FactorSelector
+        from jh_quant.factors import FactorType
+
+        jh_data = __import__("jh_quant.data", fromlist=["JHData"]).JHData()
+        selector = FactorSelector(jh_data=jh_data)
+        res = selector.select(
+            factor=FactorType.FF3,
+            start="2015-01-01", end="2024-12-31",
+            top_n=50, bottom_n=50,
+            period="M", factor_alpha=0.10, test_window=36,
+            verbose=False,
+        )
+        print("    FM 验证结果（每因子：mean_lambda / NW t / NW p / 是否显著）：")
+        print(res.fm_result.to_dataframe().round(4).to_string())
+        print("\n    归一化后的因子权重（显著因子 = |mean_lambda|，不显著因子降权）：")
+        print("    ", {k: round(v, 4) for k, v in res.weights.items()})
+        print(f"\n    选股结果：top {len(res.top_selections)} 只 / bottom {len(res.bottom_selections)} 只")
+        print("    top 前 5:", res.top_selections[:5])
+    except Exception as e:  # 因子数据不可用或依赖缺失时不影响主流程
+        print(f"    [跳过] FactorSelector 演示不可用: {e}")
 
 
 def main():
@@ -254,6 +287,8 @@ def main():
     print("    已保存 fig2_rolling_lambda.png")
 
     print("\n完成。两张图与本文对应，可插入公众号文章。")
+    print()
+    part_factor_selector()
 
 
 if __name__ == "__main__":
