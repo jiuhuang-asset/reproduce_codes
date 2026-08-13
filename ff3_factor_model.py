@@ -58,7 +58,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mpl_style  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 
-RET_START, RET_END = "2015-01-01", "2024-12-31"
+RET_START, RET_END = "2015-01-01", "2026-06-30"
 CAP_START = "2014-12-01"  # 多拉一个月，供滞后一期用
 
 # 2x3 排序的分位断点（CLASSIC 口径）
@@ -105,7 +105,7 @@ def fetch_data():
 
     # 无风险利率：TS_SHIBOR 1M（月末值，月化；bypass_cache 绕开服务端 DDL 列名不一致）
     shibor = jh.get_data(DataTypes.TS_SHIBOR,
-                         start="2015-01-01", end="2024-12-31",
+                         start="2015-01-01", end="2026-06-30",
                          bypass_cache=True).to_df()
     shibor = shibor[["date", "1m"]]
     shibor["date"] = pd.to_datetime(shibor["date"])
@@ -328,7 +328,7 @@ def part1_bivariate(panel):
     ax.set_yticks(range(5)); ax.set_yticklabels(["S1\n小盘", "S2", "S3", "S4", "S5\n大盘"])
     ax.set_xlabel("账面市值比（B1 成长 → B5 价值）")
     ax.set_ylabel("市值（S1 小盘 → S5 大盘）")
-    ax.set_title("5×5 二维排序的平均月收益（% ，2015-2024）", fontsize=14, fontweight="bold")
+    ax.set_title("5×5 二维排序的平均月收益（% ，2015-2026）", fontsize=14, fontweight="bold")
     fig1.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
     mpl_style.hide_spines(ax)
     fig1.tight_layout()
@@ -388,7 +388,7 @@ def part2_construct(factors, ym_index, arr):
     print(pd.DataFrame(mean_mat, index=["S 小盘", "B 大盘"],
                        columns=["L 成长", "M", "H 价值"]).round(2).to_string())
 
-    print("\n三因子月度统计（2015-2024）：")
+    print("\n三因子月度统计（2015-2026）：")
     stats = []
     for name, cn in [("MKT", "mkt"), ("SMB", "smb"), ("HML", "hml")]:
         s = factors[cn].dropna()
@@ -435,7 +435,7 @@ def part2_construct(factors, ym_index, arr):
     ax.axhline(1.0, color="#7F8C8D", lw=1, ls="--")
     ax.set_ylabel("累计净值（起始 = 1）")
     ax.set_xlabel("月份")
-    ax.set_title("Fama-French 三因子累计净值（A 股 2015–2024）", fontsize=14, fontweight="bold")
+    ax.set_title("Fama-French 三因子累计净值（A 股 2015–2026）", fontsize=14, fontweight="bold")
     ax.legend(fontsize=10)
     ax.set_xticks(range(0, len(ym_index), 12))
     ax.set_xticklabels([str(y)[:4] for y in ym_index[::12]], rotation=45)
@@ -513,7 +513,7 @@ def part3_validate(panel, rf, factors, ym_index):
         ax.set_title(f"{label} 复刻对比", fontsize=13)
         ax.legend(fontsize=9)
         mpl_style.hide_spines(ax)
-    fig6.suptitle("手写 FF3 与 jh_quant 库版对比（A 股 2015–2024）", fontsize=14, fontweight="bold")
+    fig6.suptitle("手写 FF3 与 jh_quant 库版对比（A 股 2015–2026）", fontsize=14, fontweight="bold")
     fig6.tight_layout(rect=[0, 0, 1, 0.95])
     fig6.savefig("output/fig6_replication_compare.png", dpi=200, bbox_inches="tight")
     print("    已保存 fig6_replication_compare.png")

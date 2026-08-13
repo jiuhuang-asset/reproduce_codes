@@ -17,7 +17,7 @@
 幂效用函数（γ=5）估计，施加无卖空约束（截断负权重并重新归一化）。
 
 内容：
-  1. 取月度前复权行情 + 月度总市值（约 50 只 A 股大盘股，2015–2024）；
+  1. 取月度前复权行情 + 月度总市值（约 50 只 A 股大盘股，2015–2026）；
   2. 构建两个特征：12 个月动量（t-13 到 t-2，跳过最近 1 月）、对数市值；
   3. 每个月底横截面标准化，用 L-BFGS-B（θ 限制在 [-10,10]）估计 θ；
   4. 对比参数化组合（最优 θ）与等权基准（θ=0）的累计净值与夏普。
@@ -53,11 +53,11 @@ from jh_quant.data import JHData, DataTypes  # noqa: E402
 # ============================================================
 # 全局参数
 # ============================================================
-START, END = "2015-01-01", "2024-12-31"
+START, END = "2015-01-01", "2026-06-30"
 GAMMA = 5.0           # 幂效用函数的相对风险厌恶系数（参考原文取 5）
 MOM_WINDOW = 12       # 动量窗口：12 个月
 
-# 约 50 只跨行业 A 股大盘/中盘股（月度数据 2015–2024 完整）
+# 约 50 只跨行业 A 股大盘/中盘股（月度数据 2015–2026 完整）
 STOCKS = {
     "600036.SH": "招商银行", "601398.SH": "工商银行", "601288.SH": "农业银行",
     "601988.SH": "中国银行", "601939.SH": "建设银行", "601166.SH": "兴业银行",
@@ -211,6 +211,10 @@ def fig1_characteristic_returns(rets, momentum, size):
     ax2.set_title("市值分组：小市值的未来月均收益")
     ax2.set_ylabel("月均收益（%）")
 
+    # 供文章引用的数字：动量 / 市值各分组的月均收益
+    print("    动量分组月均收益（%）：", [round(m * 100, 2) for m in mom_means])
+    print("    市值分组月均收益（%）：", [round(m * 100, 2) for m in size_means])
+
     for ax in (ax1, ax2):
         mpl_style.hide_spines(ax)
     fig.tight_layout()
@@ -230,7 +234,7 @@ def fig2_ppp_cumulative(rets, momentum, size, theta):
     ax.plot(rets.index, (1 + ew_ret).cumprod().values, lw=2.0,
             color=mpl_style.ACCENT, label="等权基准")
     mpl_style.hide_spines(ax)
-    ax.set_title("参数化组合 vs 等权基准（2016–2024）")
+    ax.set_title("参数化组合 vs 等权基准（2016–2026）")
     ax.set_xlabel("日期")
     ax.set_ylabel("累计净值（初始 = 1）")
     ax.legend(loc="best")

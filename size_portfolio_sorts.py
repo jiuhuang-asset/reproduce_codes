@@ -55,7 +55,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mpl_style  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 
-RET_START, RET_END = "2015-01-01", "2024-12-31"
+RET_START, RET_END = "2015-01-01", "2026-06-30"
 CAP_START = "2014-12-01"  # 多拉一个月，供滞后一期用
 
 # 金融行业（Part 2 的「剔除金融」股票池维度用）
@@ -64,7 +64,7 @@ FINANCE_INDUSTRIES = {"银行", "保险", "证券", "多元金融"}
 # Part 2 的规格网格
 N_PORTS = [2, 5, 10]
 WEIGHTINGS = ["ew", "vw"]
-PERIODS = [("2015", "2024"), ("2015", "2019"), ("2020", "2024")]
+PERIODS = [("2015", "2026"), ("2015", "2019"), ("2020", "2026")]
 POOLS = ["all", "mainboard", "no_finance"]
 
 
@@ -221,6 +221,13 @@ def part1_decile_sort(panel):
     )
     cap_share = cap_share / panel.groupby(["ym"])["mktcap"].sum().mean()
 
+    # 供文章引用的数字：每组平均股票数 + 每组总市值占比
+    n_per_month = panel.groupby("ym")["ts_code"].nunique()
+    n_per_decile = n_per_month.mean() / 10
+    print(f"\n每月平均股票数: {n_per_month.mean():.0f}，每组约 {n_per_decile:.0f} 只")
+    print("各组总市值占比（%）：")
+    print((cap_share * 100).round(1).to_string())
+
     # 图1：十分位平均月收益
     fig1, ax = plt.subplots(figsize=(9, 5))
     means = summary.values
@@ -232,7 +239,7 @@ def part1_decile_sort(panel):
     ax.axhline(0, color="#7F8C8D", lw=1)
     ax.set_ylabel("平均月收益 (%)")
     ax.set_xlabel("组合（D1 = 最小盘 → D10 = 最大盘）")
-    ax.set_title("全 A 股按市值十分位的平均月收益（2015–2024）", fontsize=14, fontweight="bold")
+    ax.set_title("全 A 股按市值十分位的平均月收益（2015–2026）", fontsize=14, fontweight="bold")
     mpl_style.hide_spines(ax)
     fig1.tight_layout()
     fig1.savefig("output/fig1_decile_returns.png", dpi=200, bbox_inches="tight")
@@ -246,7 +253,7 @@ def part1_decile_sort(panel):
                 label=f"{name}" + ("" if name != "LS" else "（小盘减大盘）"))
     ax.set_ylabel("累计净值（起始 = 1）")
     ax.set_xlabel("月份")
-    ax.set_title("不同市值组合的累计净值（2015–2024）", fontsize=14, fontweight="bold")
+    ax.set_title("不同市值组合的累计净值（2015–2026）", fontsize=14, fontweight="bold")
     ax.axhline(1.0, color="#7F8C8D", lw=1, ls="--")
     ax.legend(fontsize=10, ncol=2)
     ticks = decile_panel.index[::12]
@@ -268,7 +275,7 @@ def part1_decile_sort(panel):
                 f"{v:.1f}%", ha="center", fontsize=9)
     ax.set_ylabel("占全市场总市值 (%)")
     ax.set_xlabel("组合（D1 = 最小盘 → D10 = 最大盘）")
-    ax.set_title("每个十分位组合的总市值占比（2015–2024）", fontsize=14, fontweight="bold")
+    ax.set_title("每个十分位组合的总市值占比（2015–2026）", fontsize=14, fontweight="bold")
     mpl_style.hide_spines(ax)
     fig3.tight_layout()
     fig3.savefig("output/fig3_cap_share.png", dpi=200, bbox_inches="tight")
@@ -332,7 +339,7 @@ def part2_p_hacking(panel):
     print(specs.loc[specs["规模溢价%"].idxmax()].to_string())
 
     # 最激进 / 最保守规格（限定全样本期，保证两条累计净值曲线时间窗可比）
-    full = specs[specs["样本期"] == "2015-2024"]
+    full = specs[specs["样本期"] == "2015-2026"]
     best = full.loc[full["规模溢价%"].idxmax()]
     worst = full.loc[full["规模溢价%"].idxmin()]
 
@@ -355,7 +362,7 @@ def part2_p_hacking(panel):
                label=f"中位数 {specs['规模溢价%'].median():.2f}%")
     ax.set_xlabel("规格编号（按规模溢价升序）")
     ax.set_ylabel("规模溢价（小盘−大盘，%/月）")
-    ax.set_title("54 种设计规格下的规模溢价（A 股 2015-2024）", fontsize=14, fontweight="bold")
+    ax.set_title("54 种设计规格下的规模溢价（A 股 2015-2026）", fontsize=14, fontweight="bold")
     ax.legend(fontsize=10, loc="upper left")
     ax.set_xticks([])
     mpl_style.hide_spines(ax)
@@ -367,7 +374,7 @@ def part2_p_hacking(panel):
     dims = [
         ("组合数", [2, 5, 10]),
         ("加权", ["等权", "市值加权"]),
-        ("样本期", ["2015-2024", "2015-2019", "2020-2024"]),
+        ("样本期", ["2015-2026", "2015-2019", "2020-2026"]),
         ("股票池", ["all", "mainboard", "no_finance"]),
     ]
     fig5, axes = plt.subplots(1, 4, figsize=(15, 4.5))

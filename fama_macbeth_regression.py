@@ -27,12 +27,12 @@ Fama-MacBeth (1973) 两步法就是干这个的：
 
   lambda 显著不为零 = 该特征被市场定价（收益随该特征系统性变化）。
 
-结果（2015-2024 A股，诚实版）
+结果（2015-2026 A股，诚实版）
 ------------------------------
 - Beta：从未被定价（各规格、各窗口 |NW t| 都 < 1）
-- log 市值：全样本显著为负（NW t ≈ -2.5）——小盘溢价真实存在；
+- log 市值：全样本显著为负（NW t ≈ -2.3）——小盘溢价真实存在；
   但同一窗口（2017 起）下显著性退潮，说明溢价主要来自 2015-2017 小盘行情
-- BM：方向始终为正（价值溢价），但全样本未达 5% 显著（NW t ≈ 1.5）
+- BM：方向始终为正（价值溢价），但统计上不显著（NW t ≈ 0.7）
 
 关键设计（延续系列惯例）
 ------------------------
@@ -171,7 +171,7 @@ def part_factor_selector():
         selector = FactorSelector(jh_data=jh_data)
         res = selector.select(
             factor=FactorType.FF3,
-            start="2015-01-01", end="2024-12-31",
+            start="2015-01-01", end="2026-06-30",
             top_n=50, bottom_n=50,
             period="M", factor_alpha=0.10, test_window=36,
             verbose=False,
@@ -228,12 +228,12 @@ def main():
     for c in ["beta", "log_mktcap", "bm"]:
         s = cross_sectional_lambdas([c], beta_months, feat)[c]
         rob_rows.append(summarize_lambda(s, meta[c]))
-    print("\n[表2] 同一窗口稳健性（2017-02 起 95 期，三个特征对等比较）：")
+    print("\n[表2] 同一窗口稳健性（2017-02 起 113 期，三个特征对等比较）：")
     print_table(pd.DataFrame(rob_rows))
 
-    # 补充：三特征联合横截面回归（同 95 期）
+    # 补充：三特征联合横截面回归（同 113 期）
     j = cross_sectional_lambdas(["beta", "log_mktcap", "bm"], beta_months, feat)
-    print("\n[表3] 三特征联合回归（同 95 期；观察多重共线性对显著性的稀释）：")
+    print("\n[表3] 三特征联合回归（同 113 期；观察多重共线性对显著性的稀释）：")
     print_table(pd.DataFrame([summarize_lambda(j[c], meta[c]) for c in ["beta", "log_mktcap", "bm"]]))
 
     print(">>> 5/5 绘图（mpl_style 统一风格）...")
@@ -258,7 +258,7 @@ def main():
     ax.axhline(0, color="#7F8C8D", lw=1)
     ax.set_ylabel("风险溢价 λ（%/月，每 1 个标准差）")
     ax.set_xlabel("特征")
-    ax.set_title("Fama-MacBeth：A股 2015–2024 哪些特征被定价？",
+    ax.set_title("Fama-MacBeth：A股 2015–2026 哪些特征被定价？",
                  fontsize=14, fontweight="bold")
     mpl_style.hide_spines(ax)
     fig1.tight_layout()

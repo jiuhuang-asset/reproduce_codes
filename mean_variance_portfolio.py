@@ -8,7 +8,7 @@
            https://www.tidy-finance.org/chapters/constrained-optimization-and-backtesting.html
 
 内容：
-  1. 用 6 只跨行业 A 股蓝筹（日频，2020–2024）算期望收益、波动率、协方差矩阵；
+  1. 用 6 只跨行业 A 股蓝筹（日频，2020–2026）算期望收益、波动率、协方差矩阵；
   2. 画两资产分散化示意（相关性如何改变组合风险）；
   3. 画 6 只股票的风险-收益散点；
   4. 用解析式画有效前沿，标出最小方差组合与最大夏普（切线）组合；
@@ -49,12 +49,12 @@ from jh_quant.data import JHData, DataTypes  # noqa: E402
 # ============================================================
 # 全局参数
 # ============================================================
-START, END = "2020-01-01", "2024-12-31"
+START, END = "2020-01-01", "2026-06-30"
 TRADING_DAYS = 252  # 一年约 252 个交易日，用于年化
 
 # 6 只跨行业蓝筹：代码 -> 简称
 # 说明：长江电力(600900.SH)/中国平安(601318.SH)在 QFQ 源里历史数据缺失（仅 2023-12 起），
-#       故用同样有完整 5 年数据、且同属公用/消费板块的中国核电、美的集团替代。
+#       故用同样有完整 6.5 年数据、且同属公用/消费板块的中国核电、美的集团替代。
 STOCKS = {
     "600036.SH": "招商银行",
     "600519.SH": "贵州茅台",
@@ -247,7 +247,7 @@ def fig2_risk_return_scatter(mu, sigma):
         ax.annotate(name, (sigma[code] * 100, mu[code] * 100),
                     textcoords="offset points", xytext=(8, 4))
     mpl_style.hide_spines(ax)
-    ax.set_title("6 只股票：年化风险 vs 年化收益（2020–2024）")
+    ax.set_title("6 只股票：年化风险 vs 年化收益（2020–2026）")
     ax.set_xlabel("年化波动率（%，即风险）")
     ax.set_ylabel("年化收益率（%）")
     fig.tight_layout()

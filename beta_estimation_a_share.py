@@ -53,8 +53,8 @@ import matplotlib.pyplot as plt  # noqa: E402
 # Part 1：三只代表性股票（日频）
 # ============================================================
 
-# 数据期间：最近 5 个完整日历年（约 1200 个交易日）
-STOCK_START, STOCK_END = "2020-01-01", "2024-12-31"
+# 数据期间：2020 至 2026 年中（约 6.5 年，约 1600 个交易日）
+STOCK_START, STOCK_END = "2020-01-01", "2026-06-30"
 
 # 三只代表性股票：代码 -> 简称
 STOCKS = {
@@ -237,7 +237,7 @@ def part1_single_stock():
         ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.02,
                 f"{b:.2f}", ha="center", fontsize=12, fontweight="bold")
     ax.set_ylabel("Beta")
-    ax.set_title("三只股票的 CAPM 市场 Beta（2020–2024）", fontsize=14, fontweight="bold")
+    ax.set_title("三只股票的 CAPM 市场 Beta（2020–2026）", fontsize=14, fontweight="bold")
     ax.set_ylim(0, max(betas) * 1.25)
     ax.legend(fontsize=10)
     mpl_style.hide_spines(ax)
@@ -252,7 +252,7 @@ def part1_single_stock():
         rb = rolling_beta(sub, window=60)
         ax.plot(sub["trade_date"], rb, lw=1.6, label=f"{name}")
     ax.set_ylabel("60 日滚动 Beta")
-    ax.set_title("三只股票的 60 个交易日滚动 Beta（2020–2024）", fontsize=14, fontweight="bold")
+    ax.set_title("三只股票的 60 个交易日滚动 Beta（2020–2026）", fontsize=14, fontweight="bold")
     ax.axhline(1.0, color="#7F8C8D", lw=1, ls="--")
     ax.legend(fontsize=10, ncol=3)
     mpl_style.hide_spines(ax)
@@ -268,7 +268,7 @@ def part1_single_stock():
 # ============================================================
 
 # 样本期（2014-12 多拉一个月供 pct_change 用）
-MKT_START, MKT_END = "2014-12-01", "2024-12-31"
+MKT_START, MKT_END = "2014-12-01", "2026-06-30"
 MIN_OBS = 60          # 单只股票最少样本月数
 MAX_ABS_RET = 1.0     # 月度收益绝对值上限（100%），剔除极端
 
@@ -285,13 +285,13 @@ def fetch_market_data():
 
     # 2) 沪深300 指数日线（市场组合收益，TS 源 ts_code=000300.SH）
     idx = jh.get_data(DataTypes.TS_INDEX_DAILY,
-                      ts_code="000300.SH", start="2015-01-01", end="2024-12-31").to_df()
+                      ts_code="000300.SH", start="2015-01-01", end="2026-06-30").to_df()
     idx = idx[["trade_date", "close"]].rename(columns={"trade_date": "date"})
 
     # 3) SHIBOR 无风险利率（TS_SHIBOR，月度用 1 个月期列 1m）
     #    数据量小，bypass_cache 直接拉取：TS_SHIBOR 服务端 DDL 列名尚未同步为 1m/1w
     shibor = jh.get_data(DataTypes.TS_SHIBOR,
-                         start="2015-01-01", end="2024-12-31",
+                         start="2015-01-01", end="2026-06-30",
                          bypass_cache=True).to_df()
     shibor = shibor[["date", "1m"]]
 
@@ -383,7 +383,7 @@ def part2_cross_section():
     ax.set_xlim(-1.0, 3.0)
     ax.set_xlabel("Beta")
     ax.set_ylabel("股票数量")
-    ax.set_title("全 A 股月度 Beta 分布（2015-05 ~ 2024-12）", fontsize=14, fontweight="bold")
+    ax.set_title("全 A 股月度 Beta 分布（2015-05 ~ 2026-06）", fontsize=14, fontweight="bold")
     ax.legend(fontsize=10)
     mpl_style.hide_spines(ax)
     fig1.tight_layout()
@@ -418,11 +418,16 @@ def part2_cross_section():
     labels = (bins[:-1] + bins[1:]) / 2
     bucket = pd.cut(est["beta"], bins=bins, labels=labels)
     grp = est.groupby(bucket, observed=False)["mean_ret"].mean().dropna()
+    # 供文章「结果三」引用的数字：Beta 与平均月收益的相关性 + 分桶均值
+    corr_br = est["beta"].corr(est["mean_ret"])
+    print(f"\n    Beta 与平均月收益的相关系数: {corr_br:.2f}")
+    print("    分桶均值（Beta 区间 -> 平均月收益 %）：")
+    print((grp * 100).round(2).to_string())
     ax.plot(grp.index.astype(float), grp.values * 100,
             color=mpl_style.RISE, lw=2.2, marker="o", ms=4, label="分桶均值")
     ax.set_xlabel("Beta")
     ax.set_ylabel("平均月收益 (%)")
-    ax.set_title("Beta 与平均月收益（2015-05 ~ 2024-12）", fontsize=14, fontweight="bold")
+    ax.set_title("Beta 与平均月收益（2015-05 ~ 2026-06）", fontsize=14, fontweight="bold")
     ax.legend(fontsize=10)
     ax.set_xlim(-0.5, 3.0)
     mpl_style.hide_spines(ax)

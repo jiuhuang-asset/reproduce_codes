@@ -49,14 +49,14 @@ from jh_quant.data import JHData, DataTypes  # noqa: E402
 # ============================================================
 # 全局参数
 # ============================================================
-START, END = "2020-01-01", "2024-12-31"
+START, END = "2020-01-01", "2026-06-30"
 TRADING_DAYS = 252
 WARMUP = 252          # 滚动估计窗口：252 个交易日（约 1 年）
 REBAL_EVERY = 21      # 每 21 个交易日（约 1 个月）调仓一次
 MAX_WEIGHT = 0.40     # 单只股票权重上限
 COST_RATE = 0.002     # 单边交易成本费率：换手 1%（=100%）约千分之二
 
-# 27 只跨行业大盘蓝筹（2020–2024 数据完整）。
+# 27 只跨行业大盘蓝筹（2020–2026 数据完整）。
 # 注：长江电力/中国平安/中国神华/恒瑞医药/隆基绿能/紫金矿业/上汽集团/万华化学
 #     在 QFQ 源里历史数据缺失（仅 2023-12 起），故未纳入。
 STOCKS = {
@@ -241,7 +241,7 @@ def fig1_constrained_weights(mu, cov, rf):
 
     for ax in (ax1, ax2):
         mpl_style.hide_spines(ax)
-    fig.suptitle("约束把极端做空仓位压回现实（2020–2024，全样本）")
+    fig.suptitle("约束把极端做空仓位压回现实（2020–2026，全样本）")
     fig.tight_layout()
     fig.savefig("output/fig1_constrained_weights.png")
     print("    已保存 fig1_constrained_weights.png")
