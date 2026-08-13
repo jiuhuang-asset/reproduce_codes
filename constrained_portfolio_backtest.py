@@ -236,6 +236,8 @@ def fig1_constrained_weights(mu, cov, rf):
     ax2.axvline(MAX_WEIGHT * 100, color=mpl_style.ACCENT_2, ls="--", lw=1.2,
                 label=f"权重上限 {MAX_WEIGHT * 100:.0f}%")
     ax2.set_title("禁卖空 + 权重上限后")
+    ax2.set_yticks(y)  # 与 ax1 同样的股票名 y 轴（缺了它第二个子图只有整数刻度，像没纵轴）
+    ax2.set_yticklabels(names_s, fontsize=9)
     ax2.set_xlabel("权重（%）")  # 两张子图共用的 x 标签
     ax2.set_xlim(-5, 45)
     ax2.legend(loc="lower right")
